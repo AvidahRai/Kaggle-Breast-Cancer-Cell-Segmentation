@@ -1,0 +1,4 @@
+name: ENVNAME
+channels:
+  - defaults
+prefix: C:\Users\Straw Hat\.conda\envs\ENVNAME

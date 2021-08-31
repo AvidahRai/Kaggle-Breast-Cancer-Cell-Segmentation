@@ -127,3 +127,9 @@ dmypy.json
 
 # Pyre type checker
 .pyre/
+
+archive/
+datasets-multi/
+datasets-binary/
+saved_models/
+tb_logs/
