@@ -1,30 +1,29 @@
 """
     DataGenerator class inherited from tf.keras.utils.Sequence Class
-    Custom pipeline
+    - Custom pipeline for Tensorflow Models
+    - Supports online-augmentation
     
-    Ref:
+    Refs:
     - https://github.com/seth814/Semantic-Shapes/blob/master/data_generator.py
+    - https://philippschw.github.io/masking/image_segmentation/computer_vision/medicare-drug-cost/
 """
 import numpy as np
 import cv2
 import tensorflow as tf
 from tensorflow.keras.utils import Sequence
 import imgaug
-from imgaug import augmenters as imgaugAugmentors
 
-"""
-augmentSequence = imgaugAugmentors.Sequential([
-    imgaugAugmentors.Fliplr(0.5),
-    imgaugAugmentors.Multiply((1.2, 1.5)),
-    imgaugAugmentors.Affine(
-        rotate=(-360, 360)
-    ),
-    imgaugAugmentors.Sometimes( 0.5,
-        imgaugAugmentors.GaussianBlur( sigma=(0, 2) )
-    )
-], random_order=True)
-"""
+np.random.seed(66)
+from albumentations import ( Compose, GaussianBlur, Affine , HorizontalFlip, Rotate, RandomBrightnessContrast )
 
+augment_null = Compose([])
+augment = Compose([ 
+    GaussianBlur(blur_limit=(3, 7), sigma_limit=2, p=0.5),
+    Affine(p=0.5, shear=180),
+    HorizontalFlip( p=0.5),              
+    Rotate(limit=45, p=0.3),
+    RandomBrightnessContrast(brightness_limit=0.25, contrast_limit=0.25, p=0.6)
+])
 
 class DataGenerator(Sequence):
     
@@ -92,8 +91,16 @@ class DataGenerator(Sequence):
             
             # Check to perform data augmentation            
             if self.augmentation == True:
-                pass
-                # image_cv = self.___performAugmentation(image_cv)
+                image_cv, mask_cv = self.__performAugmentation(image_cv, mask_cv)
+            
+            mask_cv = np.expand_dims(mask_cv, axis=-1)
+            mask_cv = mask_cv / 255        
+            
+            assert (np.max(mask_cv)<= 1.0 and np.min(mask_cv) >= 0)
+            mask_cv[mask_cv > 0.5] = 1
+            mask_cv[mask_cv < 0.5] = 0
+            
+            mask_cv = mask_cv.astype('float32')
             
             # Store to batch
             X[i,] = image_cv
@@ -112,8 +119,7 @@ class DataGenerator(Sequence):
             
         elif self.input_shape[2] == 3:
             image_cv = cv2.imread(image_path, 1)
-            image_cv = image_cv / 255.0 # Scale
-            image_cv = cv2.resize(image_cv, ( self.input_shape[1], self.input_shape[0] ) )
+            image_cv = cv2.resize(image_cv, ( self.input_shape[1], self.input_shape[0] ), cv2.INTER_CUBIC )
                     
         return image_cv
         
@@ -121,9 +127,9 @@ class DataGenerator(Sequence):
         # Create Mask Numpy array
         if self.n_classes == 1:
             mask_cv = cv2.imread( mask_path, cv2.IMREAD_GRAYSCALE )
-            mask_cv = cv2.resize(mask_cv, ( self.input_shape[1], self.input_shape[0] ) )
-            mask_cv = mask_cv / 255.0 # Scale
-            mask_cv = np.expand_dims(mask_cv, axis=2)
+            mask_cv = cv2.resize( mask_cv, ( self.input_shape[1], self.input_shape[0] ), cv2.INTER_AREA )
+         
+            # mask_cv = np.expand_dims(mask_cv, axis=2)
             
         elif self.n_classes > 1:
             # Create mutli masks
@@ -131,9 +137,16 @@ class DataGenerator(Sequence):
                     
         return mask_cv          
         
-    def __performAugmentation(self, image, polygon_shapes ): 
-        pass
+    def __performAugmentation(self, image_cv, mask_cv ): 
+        
+        augmented = augment(image=image_cv, mask=mask_cv)
+        aug_img = augmented['image']
+        aug_mask = augmented['mask']
+        
 
+        
+        return aug_img, aug_mask
+    
     
     '''
         UNIT TEST METHODS

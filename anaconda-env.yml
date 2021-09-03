@@ -8,6 +8,7 @@ dependencies:
   - absl-py=0.10.0=py37_0
   - aiohttp=3.6.3=py37he774522_0
   - alabaster=0.7.12=py37_0
+  - albumentations=1.0.3=pyhd8ed1ab_0
   - argon2-cffi=20.1.0=py37h2bbff1b_1
   - astor=0.8.1=py37_0
   - astroid=2.6.6=py37haa95532_0
@@ -167,6 +168,7 @@ dependencies:
   - pywin32=228=py37hbaba5e8_1
   - pywin32-ctypes=0.2.0=py37_1001
   - pywinpty=0.5.7=py37_0
+  - pyyaml=5.4.1=py37hcc03f2d_1
   - pyzmq=22.2.1=py37hd77b12b_1
   - qt=5.12.9=h5909a2a_4
   - qtawesome=1.0.2=pyhd3eb1b0_0
@@ -224,6 +226,7 @@ dependencies:
   - winpty=0.4.3=4
   - wrapt=1.12.1=py37he774522_1
   - xz=5.2.5=h62dcd97_1
+  - yaml=0.2.5=he774522_0
   - yarl=1.6.2=py37he774522_0
   - zipp=3.5.0=pyhd3eb1b0_0
   - zlib=1.2.11=h62dcd97_1010

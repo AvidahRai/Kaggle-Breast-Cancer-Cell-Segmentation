@@ -361,6 +361,8 @@ archive/Masks/ytma55_030603_benign5.TIF
 archive/Masks/ytma55_030603_benign5.TIF.xml
 archive/Masks/ytma55_030603_benign6.TIF
 archive/Masks/ytma55_030603_benign6.TIF.xml
+datasets-binary/train/images/cancerous/
+datasets-binary/train/masks/cancerous/
 datasets-binary/test/images/ytma49_111303_benign2_ccd.tif
 datasets-binary/test/images/ytma49_111303_benign3_ccd.tif
 datasets-binary/test/images/ytma49_111303_malignant1_ccd.tif
