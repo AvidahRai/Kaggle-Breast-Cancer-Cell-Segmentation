@@ -85,7 +85,7 @@ def Unet( input_shape, pre_trained=False, n_classes=1, base=6 ):
     model = Model(inputs=i, outputs=o, name=MODEL_NAME)
     # model.compile(optimizer="sgd", loss="mse", metrics=[MeanIoU(num_classes=n_classes+1 )])
     # model.compile(optimizer=Adam(1e-4), loss=dice_loss, metrics=["accuracy", dice] )
-    model.compile( optimizer=Adam(), loss=log_cosh_dice_loss, metrics=[dice] )
+    model.compile( optimizer=Adam(3e-4), loss=log_cosh_dice_loss, metrics=[dice] )
     model.summary()
         
     if pre_trained:

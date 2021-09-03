@@ -1,4 +1,4 @@
-"""    
+""" NOT YET USABLE FOR TRAINING   
     DataGenerator class inherited from tf.keras.utils.Sequence Class
     Uses keras.preprocessing.image Module
     
@@ -66,18 +66,18 @@ class DataGenerator(Sequence):
         
         for i, (image_path, mask_path) in enumerate(zip(images_paths, masks_paths)):
                         
-            image_cv = load_img(image_path, target_size=self.input_size)    
-                
+            image_pil = load_img(image_path, target_size=self.input_size)    
+            
             # Check to perform data augmentation            
             if self.augmentation == True:
                 pass
             
-            mask_cv = load_img(mask_path, target_size=self.input_size, color_mode="grayscale")
-            mask_cv = np.expand_dims(mask_cv, 2)
+            mask_pil = load_img(mask_path, target_size=self.input_size, color_mode="grayscale")
+            mask_pil = np.expand_dims(mask_pil, 2)
             
             # Store to batch
-            X[i] = image_cv
-            y[i] = mask_cv
+            X[i] = image_pil
+            y[i] = mask_pil
             # y[i] -= 1
             
         return X, y

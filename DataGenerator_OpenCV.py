@@ -16,6 +16,7 @@ import imgaug
 np.random.seed(66)
 from albumentations import ( Compose, GaussianBlur, Affine , HorizontalFlip, Rotate, RandomBrightnessContrast )
 
+# Define Augmentation sequences
 augment_null = Compose([])
 augment = Compose([ 
     GaussianBlur(blur_limit=(3, 7), sigma_limit=2, p=0.5),

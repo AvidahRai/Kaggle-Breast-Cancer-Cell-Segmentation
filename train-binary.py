@@ -1,7 +1,13 @@
 """
 Initiate training using TensorflowGPU
 
+Notes:
+    - CHECK CONFIGURATIONS BEFORE TRAINING
+    - Binary Segmentation FCN-8 and UNET
+    - Input Batch Size: dynamic (* Cannot train more than this size on Nvidia GTX 980 ti)
+    
 @author: Avinash Rai
+
 """
 import tensorflow
 import os
@@ -22,15 +28,30 @@ from utilities import plot_training_history, dice, iou
 physical_devices = tensorflow.config.experimental.list_physical_devices("GPU")
 tensorflow.config.experimental.set_memory_growth(physical_devices[0], True)
 
-# Instance variables
-n_classes      = 1
+# Instance variables/ ******* CHECK CONFIGURATIONS BEFORE TRAINING *********
+N_CLASSES      = 1
 INPUT_SHAPE    = (768, 896, 3)
 image_file_ext = r".tif"
 masks_file_ext = r".TIF"
 train_dir_p    = "datasets-binary/train"
 val_dir_p      = "datasets-binary/validation"
-model_choosen  = "fcn"
-metric_choosen = "dice"
+
+FCN_TRAIN_PARAMS  = dict(
+                        experiment_1 = dict( batch_size=3, base=6, epochs = 100 ), # params:70,302,345,  Learning Rate:1e-4 | Max on Nvidia GTX 980ti | Dice 0.083 Late improvements 
+                        experiment_2 = dict( batch_size=3, base=6, epochs = 150 ), # params:70,302,345, Learning Rate:0.01 | Converged at Dice 0.034 
+                        experiment_3 = dict( batch_size=7, base=3, epochs = 200 ), # params:10,859,857, Learning Rate:0.01 | Converged at Dice 0.0298
+                        experiment_4 = dict( batch_size=5, base=5, epochs = 100 ), # params:33,577,321, Learning Rate:3e-4  | Converged at Dice 0.0300
+                        experiment_5 = dict( batch_size=3, base=6, epochs = 150 ) # params:70,302,345, Learning Rate:3e-4  | Converged at Dice 0.0300
+                       )
+UNET_TRAIN_PARAMS = dict( 
+                        experiment_1 = dict( batch_size=1, base=6, epochs = 100 ), # params:31,031,745, Max on Nvidia GTX 980ti, Learning Rate:0.01 | Model Diverged
+                        experiment_2 = dict( batch_size=4, base=4, epochs = 200 ), # params:1,941,105 | Converged at Dice 0.1631 
+                        experiment_3 = dict( batch_size=5, base=3, epochs = 150 )  # params:485,817 | Converged at Dice 0.18756 
+                        )
+                        
+MODEL_CHOOSEN  = "fcn" # Either "unet" or "fcn"
+METRIC_CHOSEN  = "dice" # e.g. accuracy, iou, dice
+ITERATION      = "experiment_5" # params keys
 
 
 # Prepare Data generators
@@ -40,40 +61,33 @@ val_img_list = [os.path.join(val_dir_p + "/images", _) for _ in os.listdir(val_d
 val_mask_list = [os.path.join(val_dir_p + "/masks" , _) for _ in os.listdir(val_dir_p  + "/masks") if _.endswith(masks_file_ext)]
 
 # Choose Segmentation Models
-if model_choosen == "fcn":
-    """ 
-        Train FCN_8 Model
-        - Base x ^ 5 / Parameters: 70,302,345
-        - Input Batch Size: 3
-    """
+if MODEL_CHOOSEN == "fcn":
+
     trainDataGenerator = DataGenerator(INPUT_SHAPE, 
                                        images_paths = train_img_list,
                                        masks_paths  = train_mask_list,
-                                       batch_size   = 3 )
+                                       batch_size   = FCN_TRAIN_PARAMS[ITERATION]["batch_size"], 
+                                       augmentation = True )
     validDataGenerator = DataGenerator(INPUT_SHAPE, 
                                        images_paths = val_img_list,
                                        masks_paths  = val_mask_list,
-                                       batch_size   = 3 )
+                                       batch_size   = FCN_TRAIN_PARAMS[ITERATION]["batch_size"] )
                                        
-    model = FCN_8(input_shape=INPUT_SHAPE, n_classes=n_classes, base=6)
+    model = FCN_8(input_shape=INPUT_SHAPE, n_classes=N_CLASSES, base=FCN_TRAIN_PARAMS[ITERATION]["base"] )
                                         
-elif model_choosen == "unet":
+elif MODEL_CHOOSEN == "unet":
     
-    """
-        Train UNET Model
-        - Base x ^ 6 / Parameters: 31,031,745
-        - Input Batch Size: 1
-    """
     trainDataGenerator = DataGenerator(INPUT_SHAPE, 
                                        images_paths = train_img_list,
                                        masks_paths  = train_mask_list,
-                                       batch_size   = 1 )
+                                       batch_size   = UNET_TRAIN_PARAMS[ITERATION]["batch_size"],
+                                       augmentation = True )
     validDataGenerator = DataGenerator(INPUT_SHAPE, 
                                        images_paths = val_img_list,
                                        masks_paths  = val_mask_list,
-                                       batch_size   = 1 )
+                                       batch_size   = UNET_TRAIN_PARAMS[ITERATION]["batch_size"] )
                                        
-    model = Unet(input_shape=INPUT_SHAPE, n_classes=n_classes, base=6 )
+    model = Unet(input_shape=INPUT_SHAPE, n_classes=N_CLASSES, base=UNET_TRAIN_PARAMS[ITERATION]["base"] )
 
 
 # Define Callbacks
@@ -83,7 +97,7 @@ callbacks = []
 checkpoint = ModelCheckpoint( 
         os.path.join('saved_models', model.name ), 
         # monitor = 'val_mean_io_u',
-        monitor = 'val_' + metric_choosen, 
+        monitor = 'val_' + METRIC_CHOSEN, 
         verbose = 1, 
         mode = 'max',
         save_weights_only = True,
@@ -96,13 +110,18 @@ if os.path.exists( log_directory ):
 os.mkdir( log_directory )
 tensorboardCallback = TensorBoard(log_dir=log_directory )
 
+if MODEL_CHOOSEN == "fcn":
+    epochs = FCN_TRAIN_PARAMS[ITERATION]["epochs"]
+elif MODEL_CHOOSEN == "unet":
+    epochs = UNET_TRAIN_PARAMS[ITERATION]["epochs"]
+
 # Train model
 history = model.fit( trainDataGenerator,
                     validation_data  = validDataGenerator,
                     steps_per_epoch  = len(trainDataGenerator),
                     #validation_steps = len(validDataGenerator),                       
-                    epochs           = 50, 
+                    epochs           = epochs, 
                     verbose          = 1, 
                     callbacks        = [checkpoint, tensorboardCallback] )
 
-plot_training_history(history, metric_name=metric_choosen )
+plot_training_history(history, metric_name=METRIC_CHOSEN )

@@ -29,8 +29,8 @@ def FCN_8(input_shape, pre_trained=False, n_classes=1, base=4):
         final_act = 'softmax'
 
     b = base
-    i = Input(input_shape)
-    s = Lambda(lambda x: x / 255)(i)
+    i = Input((input_shape[0], input_shape[1], input_shape[2]))
+    s = Lambda(lambda x: preprocess_input(x)) (i)
     
     ## Block 1
     x = Conv2D(2**b, (3, 3), activation='relu', padding='same', name='block1_conv1')(s)
@@ -78,11 +78,11 @@ def FCN_8(input_shape, pre_trained=False, n_classes=1, base=4):
 
     o = Conv2DTranspose(n_classes, kernel_size=(8, 8), strides=(8, 8), padding='same',
                         activation=final_act)(u4_skip)
-      
+    
     model = Model(inputs=i, outputs=o, name=MODEL_NAME)
     # model.compile(optimizer=Adam(1e-4), loss=loss, metrics=["accuracy", dice] )
     # model.compile(optimizer=Adam(1e-4), loss="mse", metrics=[ MeanIoU(num_classes=2) ] )
-    model.compile( optimizer=Adam(), loss=log_cosh_dice_loss, metrics=[dice] )
+    model.compile( optimizer=Adam(0.01), loss=log_cosh_dice_loss, metrics=[dice] )
     # model.compile(optimizer="rmsprop", loss="sparse_categorical_crossentropy", metrics=[dice])
     model.summary()
     
@@ -92,3 +92,10 @@ def FCN_8(input_shape, pre_trained=False, n_classes=1, base=4):
         print("MODEL RESTORED", model.name)
 
     return model
+ 
+ 
+def preprocess_input(x):
+    x /= 255.
+    x -= 0.5
+    x *= 2.
+    return x
