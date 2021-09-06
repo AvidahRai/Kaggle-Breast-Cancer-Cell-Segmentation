@@ -1,5 +1,6 @@
 """
     UNET Models creator
+    Procedural code
     Dynamic parameters: 2 ^ base 
     
     Refs

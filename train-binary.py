@@ -19,6 +19,8 @@ from DataGenerator_OpenCV import DataGenerator
 # from DataGenerator_PIL import DataGenerator
 from models_UNET import Unet
 from models_FCN import FCN_8
+from models_RESUNET import ResUnet
+
 from utilities import plot_training_history, dice, iou
 
 # Free up RAM in case the model defintion cells were run multiple times
@@ -48,10 +50,19 @@ UNET_TRAIN_PARAMS = dict(
                         experiment_2 = dict( batch_size=4, base=4, epochs = 200 ), # params:1,941,105 | Converged at Dice 0.1631 
                         experiment_3 = dict( batch_size=5, base=3, epochs = 150 )  # params:485,817 | Converged at Dice 0.18756 
                         )
+RESUNET_TRAIN_PARAMS = dict(
+                        experiment_1 = dict( batch_size=1, base=4, epochs = 50 ), # params:25,180,913, Max batch size, Loss Log Cash Dice Loss 1 on Nvidia GTX 980ti, | Interrupted Overfitting
+                        experiment_2 = dict( batch_size=1, base=4, epochs = 100 ), #Increased epochs, | Interrupted - Overfitting Low training loss/High Val loss 
+                        experiment_3 = dict( batch_size=1, base=3, epochs = 100 ), #params:6,304,569 | Interrupted- Overfitting Low training loss/High Val loss 
+                        experiment_4 = dict( batch_size=1, base=3, epochs = 70 ), # Removed Scaling | Interrupted- Overfitting Low training loss/High Val loss 
+                        experiment_5 = dict( batch_size=1, base=3, epochs = 70 ), # Using dice loss | Best weights saved at Dice 0.24504, Overfitting Later
+                        experiment_6 = dict( batch_size=1, base=2, epochs = 70 ), #params:1,580,813, Using dice loss | Best weights saved at Dice 0.25588, Overfitting Later
+                        experiment_7 = dict( batch_size=1, base=4, epochs = 70 ), # Using dice loss | Interrupted Overfitting
+                       )                       
                         
-MODEL_CHOOSEN  = "fcn" # Either "unet" or "fcn"
+MODEL_CHOOSEN  = "resunet" # Either "fcn", "unet" or "resunet"
 METRIC_CHOSEN  = "dice" # e.g. accuracy, iou, dice
-ITERATION      = "experiment_5" # params keys
+ITERATION      = "experiment_7" # params keys
 
 
 # Prepare Data generators
@@ -89,6 +100,19 @@ elif MODEL_CHOOSEN == "unet":
                                        
     model = Unet(input_shape=INPUT_SHAPE, n_classes=N_CLASSES, base=UNET_TRAIN_PARAMS[ITERATION]["base"] )
 
+elif MODEL_CHOOSEN == "resunet":
+    
+    trainDataGenerator = DataGenerator(INPUT_SHAPE, 
+                                       images_paths = train_img_list,
+                                       masks_paths  = train_mask_list,
+                                       batch_size   = RESUNET_TRAIN_PARAMS[ITERATION]["batch_size"],
+                                       augmentation = True )
+    validDataGenerator = DataGenerator(INPUT_SHAPE, 
+                                       images_paths = val_img_list,
+                                       masks_paths  = val_mask_list,
+                                       batch_size   = RESUNET_TRAIN_PARAMS[ITERATION]["batch_size"] )
+                                    
+    model = ResUnet(input_shape=INPUT_SHAPE, n_classes=N_CLASSES, base=RESUNET_TRAIN_PARAMS[ITERATION]["base"] )
 
 # Define Callbacks
 callbacks = []
@@ -114,7 +138,9 @@ if MODEL_CHOOSEN == "fcn":
     epochs = FCN_TRAIN_PARAMS[ITERATION]["epochs"]
 elif MODEL_CHOOSEN == "unet":
     epochs = UNET_TRAIN_PARAMS[ITERATION]["epochs"]
-
+elif MODEL_CHOOSEN == "resunet":
+    epochs = RESUNET_TRAIN_PARAMS[ITERATION]["epochs"]
+    
 # Train model
 history = model.fit( trainDataGenerator,
                     validation_data  = validDataGenerator,

@@ -1,5 +1,6 @@
 """
     FCN-8 models creator
+    Procedural code
     Dynamic parameters : 2 ^ base
     
     Refs
